@@ -24,7 +24,8 @@
 
 namespace Shopware\Components\DependencyInjection\Bridge;
 
-use Shopware\Components\DependencyInjection\Container;
+use Enlight_Components_Mail;
+use Shopware_Components_Config;
 
 /**
  * @category  Shopware
@@ -34,26 +35,42 @@ use Shopware\Components\DependencyInjection\Container;
 class Mail
 {
     /**
-     * @param Container                $container
-     * @param \Shopware_Components_Config   $config
-     * @param array                         $options
-     * @return \Enlight_Components_Mail|null
+     * @param Shopware_Components_Config $config
+     * @param array $options
+     * @return Enlight_Components_Mail|null
      */
-    public function factory(Container $container, \Shopware_Components_Config $config, array $options)
+    public function factory(Shopware_Components_Config $config, array $options)
     {
-        if (!$container->load('MailTransport')) {
-            return null;
+        $mail = new Enlight_Components_Mail();
+
+        if (!empty($options['charset'])) {
+            $mail->setCharset($options['charset']);
+        } elseif ($config->get('charset')) {
+            $mail->setCharset($config->get('charset'));
         }
 
-        if (isset($options['charset'])) {
-            $defaultCharSet = $options['charset'];
-        } elseif (!empty($config->CharSet)) {
-            $defaultCharSet = $config->CharSet;
-        } else {
-            $defaultCharSet = null;
+        if (!empty($options['from']['email'])) {
+            $mail->setFrom(
+                $options['from']['email'],
+                !empty($options['from']['name']) ? $options['from']['name'] : null
+            );
+        } elseif ($config->get('mail')) {
+            $mail->setFrom(
+                $config->get('mail'),
+                $config->get('shopName')
+            );
         }
 
-        $mail = new \Enlight_Components_Mail($defaultCharSet);
+        if (!empty($options['replyTo']['email'])) {
+            $mail->setReplyTo(
+                $options['replyTo']['email'],
+                !empty($options['replyTo']['name']) ? $options['replyTo']['name'] : null
+            );
+        }
+
+        if ($config->get('mailer_bcc_address')) {
+            $mail->setBcc($config->get('mailer_bcc_address'));
+        }
 
         return $mail;
     }
